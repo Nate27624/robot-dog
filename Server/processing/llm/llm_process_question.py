@@ -9,7 +9,7 @@ from google.genai import types
 
 def generate(question):
     client = genai.Client(
-        api_key="AIzaSyDzpPIEG6F8y4EaYlzmeG2XYqBfTIqrAkg",
+        api_key="XXXXXXX,
     )
 
     model = "gemini-2.5-flash-lite-preview-06-17"
@@ -257,3 +257,4 @@ the person!
     
     print(response.function_calls)
     return response.text, response.function_calls
+
