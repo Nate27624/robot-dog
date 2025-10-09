@@ -1,0 +1,13 @@
+authtoken: 2zhk4hgAYBtW2ZrU3ChUeYC1qMm_6wYgDMSudAF1tX3HcEdDQ
+
+version: "2"
+
+tunnels:
+  flask_api:
+    proto: http
+    addr: 5022
+    domain: regular-ideally-sponge.ngrok-free.app
+
+  socket_server:
+    proto: tcp
+    addr: 5021
