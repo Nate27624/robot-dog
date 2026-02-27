@@ -41,7 +41,7 @@ All messages should be sent as JSON objects followed by a newline character (`\n
 ## Available Commands
 
 ### Basic Movement Commands
-- `damp` - Kills robot, turns off power but keeps robot on
+- `damp` - Enters low-power mode (motors off, system stays on)
 - `balance_stand` - Unlocks the joints
 - `stop_move` - Stop current movement
 - `stand_up` - Stands the robot dog up
@@ -79,7 +79,7 @@ All messages should be sent as JSON objects followed by a newline character (`\n
 - `dance1` - Short dance
 - `dance2` - Long dance
 - `heart` - Performs a heart movement
-- `scrape` - Goes on its knees
+- `scrape` - Scraping/pawing motion
 
 ### Acrobatic Commands
 - `frontflip` - Performs a front flip

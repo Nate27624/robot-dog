@@ -23,13 +23,28 @@ public class NewSpeechCapture : MonoBehaviour
     public bool enableMic = true;
     public bool micWasEnabled = false;
     public Color userSpeakingColor;
+    private bool _lastMicActive;
+
     private void Awake()
     {
         if (!witDictation) witDictation = FindObjectOfType<DictationService>();
+        if (witDictation)
+        {
+            _lastMicActive = witDictation.MicActive;
+        }
+        else
+        {
+            Debug.LogError("DictationService not found in scene.");
+        }
     }
 
     public void Update()
     {
+        if (!witDictation)
+        {
+            return;
+        }
+
         if (enableMic)
         {
             // Activate mic if it's not already active and allowed
@@ -47,11 +62,19 @@ public class NewSpeechCapture : MonoBehaviour
             }
         }
 
-        Debug.Log("Mirophone Status: " + witDictation.MicActive);
+        if (witDictation.MicActive != _lastMicActive)
+        {
+            Debug.Log("Microphone Status: " + witDictation.MicActive);
+            _lastMicActive = witDictation.MicActive;
+        }
     }
 
     private void OnEnable()
     {
+        if (!witDictation)
+        {
+            return;
+        }
         witDictation.DictationEvents.OnFullTranscription.AddListener(OnFullTranscription);
         witDictation.DictationEvents.OnError.AddListener(OnError);
         witDictation.DictationEvents.OnPartialTranscription.AddListener(OnPartialTrans);
@@ -59,9 +82,14 @@ public class NewSpeechCapture : MonoBehaviour
 
     private void OnDisable()
     {
+        if (!witDictation)
+        {
+            return;
+        }
         _activeText = string.Empty;
         witDictation.DictationEvents.OnFullTranscription.RemoveListener(OnFullTranscription);
         witDictation.DictationEvents.OnError.RemoveListener(OnError);
+        witDictation.DictationEvents.OnPartialTranscription.RemoveListener(OnPartialTrans);
     }
 
     private void OnFullTranscription(string text)

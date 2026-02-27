@@ -8,7 +8,12 @@ public class SpeechOutput : MonoBehaviour
 
     private void Update()
     {
-        speechCap.enableMic = !_speaker.IsSpeaking;
+        if (speechCap == null || _speaker == null)
+        {
+            return;
+        }
+        bool waitingForServer = speechCap.ngrok != null && speechCap.ngrok.IsRequestInFlight;
+        speechCap.enableMic = !_speaker.IsSpeaking && !waitingForServer;
     }
 
 

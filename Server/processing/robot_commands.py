@@ -1,4 +1,3 @@
-import json
 import math
 from processing.socket_server import send_json_command_to_client
 
@@ -14,7 +13,7 @@ def map_function_to_command(func_name, parameters=None):
         "lay_down": "stand_down",
         "pose": "euler",
         "move": "move", 
-        "rotate": "euler",  # Will need special handling for rotation
+        "rotate": "move",
         "sit_down": "sit",
         "hello": "hello",
         "stretch": "stretch",
@@ -49,10 +48,18 @@ def map_function_to_command(func_name, parameters=None):
             parameters.get("yaw", 0)
         ]
     elif func_name == "rotate":
-        # Convert rotation_amount to yaw angle (degrees to radians)
+        # Convert target degrees to an in-place yaw movement.
         rotation_rad = math.radians(parameters.get("rotation_amount", 0))
-        robot_params["angles"] = [0, 0, rotation_rad]
-        robot_command = "euler"
+        if rotation_rad == 0:
+            yaw_velocity = 0
+            duration = 0
+        else:
+            duration = max(min(abs(rotation_rad) / 0.8, 6.0), 0.2)
+            yaw_velocity = max(min(rotation_rad / duration, 1.2), -1.2)
+        robot_params["movement"] = [0, 0, yaw_velocity]
+        robot_params["duration"] = duration
+        robot_params["stop_after"] = True
+        robot_command = "move"
     elif func_name == "move":
         # Map x, y to movement array (add z=0)
         robot_params["movement"] = [

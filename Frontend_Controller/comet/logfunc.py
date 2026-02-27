@@ -17,14 +17,14 @@ def log_to_file(payload, message_type="unknown"):
         return
         
     try:
-        # Create a copy of payload without the large base64 frame data for logging
+        # Create a copy of payload without the large frame payload for logging
         log_payload = payload.copy()
         
         # Handle frame data if present
         if "frame" in log_payload and "data" in log_payload["frame"]:
-            # Replace the large base64 data with a placeholder
+            # Replace the large frame data with a placeholder
             frame_size = len(log_payload["frame"]["data"])
-            log_payload["frame"]["data"] = f"[BASE64_IMAGE_DATA_{frame_size}_BYTES]"
+            log_payload["frame"]["data"] = f"[IMAGE_DATA_{frame_size}_BYTES]"
         
         # Handle point cloud data if present
         if "robot_data" in log_payload and "point_cloud" in log_payload["robot_data"] and log_payload["robot_data"]["point_cloud"]:
