@@ -150,6 +150,11 @@ async def _run_single(cmd_name: str, params: Dict[str,Any], conn) -> None:
             await fn(conn, params.get("angles", [0,0,0]))
         elif cmd_name == "move":
             await fn(conn, params.get("movement", [0,0,0]))
+            duration = params.get("duration")
+            if duration:
+                await asyncio.sleep(duration)
+            if params.get("stop_after"):
+                await sportfunc.stop_move(conn)
         elif cmd_name == "handstand":
             await fn(conn, params.get("length", 3))
         elif cmd_name in ("walkupright","crossstep"):
@@ -163,5 +168,3 @@ async def _run_single(cmd_name: str, params: Dict[str,Any], conn) -> None:
         print(f"[COMMAND] '{cmd_name}' complete")
     except Exception as e:
         print(f"[COMMAND] exception during '{cmd_name}': {e}")
-
-# CURRENT ISSUE IS WITH THE CLIENT!!! SERVER IS PERFECT

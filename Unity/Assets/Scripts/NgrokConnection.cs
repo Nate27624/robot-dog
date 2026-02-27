@@ -1,7 +1,8 @@
+using System.Collections;
+using System.Text;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
-using System.Collections;
-using TMPro; // Optional: if you're using a TextMeshPro input/output
 using UnityEngine.UI;
 
 public class NgrokConnection : MonoBehaviour
@@ -13,8 +14,12 @@ public class NgrokConnection : MonoBehaviour
 
     public Color successColor;
     public Color robotDogColor;
+    public Color thinkingColor;
+    public Color errorColor;
     public SceneSwitch ss;
     public SpeechOutput speech;
+
+    public bool IsRequestInFlight { get; private set; }
 
     public void TestConnection()
     {
@@ -23,77 +28,152 @@ public class NgrokConnection : MonoBehaviour
 
     public void SendQuestion(string question)
     {
-        Debug.Log("Sending Question...");
+        if (string.IsNullOrWhiteSpace(question))
+        {
+            return;
+        }
+        if (IsRequestInFlight)
+        {
+            return;
+        }
+
+        if (speakText != null)
+        {
+            speakText.text = "Thinking...";
+            speakText.color = thinkingColor;
+        }
+
+        IsRequestInFlight = true;
         StartCoroutine(SendQuestionRequest(question));
-        
+    }
+
+    public void SendEmergencyStop()
+    {
+        StartCoroutine(SendStopRequest());
+    }
+
+    private string BuildEndpoint(string route)
+    {
+        string subdomain = addressInput != null ? addressInput.text.Trim() : "";
+        return "https://" + subdomain + ".ngrok-free.app/" + route;
+    }
+
+    private void ShowNetworkError()
+    {
+        const string message = "Couldn't connect - check your network and try again";
+        if (resultText != null)
+        {
+            resultText.text = message;
+            resultText.color = errorColor;
+        }
+        if (speakText != null)
+        {
+            speakText.text = "Can't reach Comet right now - check your connection.";
+            speakText.color = errorColor;
+        }
     }
 
     private IEnumerator SendQuestionRequest(string question)
     {
-        // Create JSON payload
         string jsonPayload = JsonUtility.ToJson(new QuestionData(question));
-        byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(jsonPayload);
+        byte[] jsonToSend = Encoding.UTF8.GetBytes(jsonPayload);
 
-        // Create the UnityWebRequest
-        UnityWebRequest request = new UnityWebRequest("https://" + addressInput.text + ".ngrok-free.app/ask_question", "POST");
+        UnityWebRequest request = new UnityWebRequest(BuildEndpoint("ask_question"), "POST");
         request.uploadHandler = new UploadHandlerRaw(jsonToSend);
         request.downloadHandler = new DownloadHandlerBuffer();
         request.SetRequestHeader("Content-Type", "application/json");
 
-        // Send the request
         yield return request.SendWebRequest();
-
-        Debug.Log("HERE");
+        IsRequestInFlight = false;
 
         if (request.result == UnityWebRequest.Result.Success)
         {
-            Debug.Log("Raw Response: " + request.downloadHandler.text);
-
             QuestionResponse res = JsonUtility.FromJson<QuestionResponse>(request.downloadHandler.text);
-            Debug.Log("Parsed Response: " + res.response);
-
-            ProcessResponse(res.response);
+            if (res != null && !string.IsNullOrEmpty(res.response))
+            {
+                ProcessResponse(res.response);
+            }
+            else
+            {
+                if (speakText != null)
+                {
+                    speakText.text = "I heard you, but I need a second try.";
+                    speakText.color = errorColor;
+                }
+            }
         }
-
         else
         {
-            Debug.LogError("Error: " + request.error);
+            Debug.LogError("Question request failed: " + request.error);
             Debug.LogError("Response code: " + request.responseCode);
             Debug.LogError("Response text: " + request.downloadHandler.text);
+            if (request.responseCode == 429 && speakText != null)
+            {
+                speakText.text = "I'm still thinking about your last request.";
+                speakText.color = thinkingColor;
+            }
+            else
+            {
+                ShowNetworkError();
+            }
         }
     }
 
+    private IEnumerator SendStopRequest()
+    {
+        UnityWebRequest request = new UnityWebRequest(BuildEndpoint("stop_robot"), "POST");
+        request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes("{}"));
+        request.downloadHandler = new DownloadHandlerBuffer();
+        request.SetRequestHeader("Content-Type", "application/json");
+
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            if (speakText != null)
+            {
+                speakText.text = "Stopping now.";
+                speakText.color = robotDogColor;
+            }
+        }
+        else
+        {
+            Debug.LogError("Stop request failed: " + request.error);
+            ShowNetworkError();
+        }
+    }
 
     private IEnumerator SendTestRequest()
     {
-        UnityWebRequest request = UnityWebRequest.Get("https://" + addressInput.text + ".ngrok-free.app/test_connection");
-
-        // Send request
+        UnityWebRequest request = UnityWebRequest.Get(BuildEndpoint("test_connection"));
         yield return request.SendWebRequest();
 
-        // Handle result
         if (request.result == UnityWebRequest.Result.Success)
         {
             Debug.Log("Backend is reachable: " + request.downloadHandler.text);
             if (resultText != null)
             {
-                resultText.text = "Connected!";
-                ColorBlock colors = btn.colors;
-                colors.normalColor = successColor;
-                btn.colors = colors;
-
-                ss.MenuPress();
+                resultText.text = "Connected to Comet";
+                resultText.color = successColor;
+                if (btn != null)
+                {
+                    ColorBlock colors = btn.colors;
+                    colors.normalColor = successColor;
+                    btn.colors = colors;
+                }
+                if (ss != null)
+                {
+                    ss.MenuPress();
+                }
             }
         }
         else
         {
             Debug.LogError("Connection failed: " + request.error);
-            if (resultText != null)
-                resultText.text = "Error: " + request.error;
+            ShowNetworkError();
         }
     }
 
-    // Helper class for JSON serialization
     [System.Serializable]
     public class QuestionData
     {
@@ -111,11 +191,16 @@ public class NgrokConnection : MonoBehaviour
         public string response;
     }
 
-
     public void ProcessResponse(string response)
     {
-        speech.Speak(response);
-        speakText.text = response;
-        speakText.color = robotDogColor;
+        if (speech != null)
+        {
+            speech.Speak(response);
+        }
+        if (speakText != null)
+        {
+            speakText.text = response;
+            speakText.color = robotDogColor;
+        }
     }
 }

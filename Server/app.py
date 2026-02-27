@@ -3,7 +3,7 @@ import time
 import cv2
 from flask import Flask, request, jsonify
 from processing.llm.llm_process_question import generate
-from processing.socket_server import start_data_reception, get_latest_robot_data_threadsafe
+from processing.socket_server import start_data_reception, get_latest_robot_data_threadsafe, send_json_command_to_client
 from processing.robot_commands import execute_robot_functions
 from robot_data_parser import parser
 from robot_ui import RobotDataUI
@@ -15,6 +15,7 @@ HOST = '0.0.0.0'
 FLASK_PORT = 5022
 SOCKET_PORT = 5021
 BUFFER_SIZE = 4096
+llm_request_lock = threading.Lock()
 
 def ngrok_setup():
     # === ngrok Setup ===
@@ -41,8 +42,14 @@ def test_connection():
 
 @app.route('/ask_question', methods=['POST'])
 def ask_question():
+    if not llm_request_lock.acquire(blocking=False):
+        return jsonify({
+            "error": "Comet is still processing your last request. Please wait a moment and try again.",
+            "status": "busy"
+        }), 429
+
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         user_question = data.get('user_question')
         if not user_question:
             return jsonify({"error": "Missing user_question"}), 400
@@ -70,6 +77,15 @@ def ask_question():
     except Exception as e:
         print(f"[API ERROR] {str(e)}")
         return jsonify({"error": str(e)}), 500
+    finally:
+        llm_request_lock.release()
+
+
+@app.route('/stop_robot', methods=['POST'])
+def stop_robot():
+    response = send_json_command_to_client({"type": "clear_queue"})
+    status_code = 200 if response.get("status") == "success" else 503
+    return jsonify(response), status_code
 
 
 def start_flask_api():
