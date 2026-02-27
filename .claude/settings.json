@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python *)",
+      "Bash(pip install *)",
+      "Bash(curl http://localhost:*)"
+    ],
+    "deny": [
+      "Read(./Server/ngrok.yml)",
+      "Read(./Server/ngrok.exe)"
+    ]
+  },
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "0"
+  }
+}
