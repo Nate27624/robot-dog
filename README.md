@@ -1,6 +1,10 @@
 # Comet
 Creating an LLM driven robot dog with Unitree Go 2, Google Gemini, and other types of AI
 
+## Demo
+
+- [Comet demo video](https://drive.google.com/file/d/1uffFOmuZFq7P0wGeoL1_5fCEQ-rDiy46/view?usp=sharing)
+
 ## Unity
 This is the Android application which enables communication with the controller via Flask.  The android application uses Wit.AI for speech input processing and speaking output (STT and TTS)
 
